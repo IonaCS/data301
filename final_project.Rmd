@@ -1,0 +1,11 @@
+---
+title: "final_project"
+author: "Iona Sammons, 300281718"
+date: "06/10/2020"
+output: html_document
+---
+
+```{r}
+# import the data set
+covid <- read.csv("covid_19_data_portal.csv", header = TRUE, stringsAsFactors = FALSE)
+```
