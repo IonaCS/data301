@@ -6,6 +6,20 @@ output: html_document
 ---
 
 ```{r}
-# import the data set
+library(dplyr)
+
 covid <- read.csv("covid_19_data_portal.csv", header = TRUE, stringsAsFactors = FALSE)
+```
+
+```{r}
+# Select data that relates to arrivals
+allArrivals <- filter(covid, indicator_name == "Daily border crossings - arrivals")
+
+# Convert values from char to correct format
+allArrivals$parameter <- as.Date(allArrivals$parameter, format="%Y-%m-%d")
+allArrivals$value <- as.numeric(allArrivals$value)
+
+# Select only other passport arrivals
+otherArrivals <- filter(allArrivals, series_name == "Other passport")
+otherArrivals <- subset(otherArrivals, select=c("parameter","value"))
 ```
