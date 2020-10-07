@@ -5,12 +5,18 @@ date: "06/10/2020"
 output: html_document
 ---
 
+# Import stuff
 ```{r}
 library(dplyr)
+library(zoo)
+library(forecast)
+library(ggplot2)
+library(lubridate)
 
 covid <- read.csv("covid_19_data_portal.csv", header = TRUE, stringsAsFactors = FALSE)
 ```
 
+# Change dataframes
 ```{r}
 # Select data that relates to arrivals
 allArrivals <- filter(covid, indicator_name == "Daily border crossings - arrivals")
@@ -20,6 +26,67 @@ allArrivals$parameter <- as.Date(allArrivals$parameter, format="%Y-%m-%d")
 allArrivals$value <- as.numeric(allArrivals$value)
 
 # Select only other passport arrivals
-otherArrivals <- filter(allArrivals, series_name == "Other passport")
+otherArrivals <- filter(allArrivals, series_name == "Other passports")
 otherArrivals <- subset(otherArrivals, select=c("parameter","value"))
+
+####################### converting tests
+zoo <- read.zoo(otherArrivals)
+
+tsArrivals<-ts(otherArrivals$value)
+plot(tsArrivals)
+otherArrivals$cleanvalue<-tsclean(tsArrivals) #remove outliers
+```
+
+# Graphs
+```{r}
+recentArrivals <- filter(otherArrivals, parameter > as.Date("2019-12-01"))
+
+firstReportedCase <- as.Date("2020-02-28")
+bordersClosed <- as.Date("2020-03-19")
+levelFour <- as.Date("2020-03-25")
+MIQStarted <- as.Date("2020-04-10")
+levelThree <- as.Date("2020-04-27")
+levelTwo <- as.Date("2020-05-13")
+levelOne <- as.Date("2020-06-08")
+MIQFeeCameIntoEffect <- as.Date("2020-08-11")
+
+ggplot(recentArrivals, aes(x=parameter, y=value)) + 
+  geom_line() +
+  geom_vline(xintercept = bordersClosed, color = "blue") +
+  geom_vline(xintercept = levelFour, color = "red") +
+  geom_vline(xintercept = MIQStarted, color = "blue") +
+  geom_vline(xintercept = levelThree, color = "dark orange") +
+  geom_vline(xintercept = levelTwo, color = "goldenrod1") +
+  geom_vline(xintercept = levelOne, color = "green3") +
+  geom_vline(xintercept = MIQFeeCameIntoEffect, color = "blue") + 
+  labs(title="'Other' passport holders' arrivals since the first reported Covid case",
+       #subtitle="",
+       y="Number of departures",
+       x="Month of depature")
+```
+
+```{r}
+otherArrivals$Month <- month(otherArrivals$parameter)
+
+ggplot(otherArrivals, aes(parameter, value)) + 
+  geom_point() + 
+  facet_wrap( ~ Month) + scale_x_date('month')
+
+ggplot(otherArrivals, aes(parameter, cleanvalue)) + 
+  geom_point() + 
+  facet_wrap( ~ Month) + scale_x_date('month')
+```
+
+# Moving averages
+```{r}
+otherArrivals$weeklyma <- ma(otherArrivals$cleanvalue, order=7)
+otherArrivals$monthlyma <- ma(otherArrivals$cleanvalue, order=30)
+
+ggplot() + 
+  geom_line(otherArrivals, mapping = aes(parameter, cleanvalue, colour="value")) +
+  geom_line(otherArrivals, mapping = aes(parameter, weeklyma, colour="weekly ma")) +
+  geom_line(otherArrivals, mapping = aes(parameter, monthlyma, colour="monthly ma"))
+
+ggplot() +
+  geom_line(otherArrivals, mapping = aes(parameter, weeklyma, colour="weekly ma"))
 ```
