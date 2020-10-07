@@ -12,6 +12,7 @@ library(zoo)
 library(forecast)
 library(ggplot2)
 library(lubridate)
+library(tseries)
 
 covid <- read.csv("covid_19_data_portal.csv", header = TRUE, stringsAsFactors = FALSE)
 ```
@@ -61,8 +62,8 @@ ggplot(recentArrivals, aes(x=parameter, y=value)) +
   geom_vline(xintercept = MIQFeeCameIntoEffect, color = "blue") + 
   labs(title="'Other' passport holders' arrivals since the first reported Covid case",
        #subtitle="",
-       y="Number of departures",
-       x="Month of depature")
+       y="Number of arrivals",
+       x="Month of arrival")
 ```
 
 ```{r}
@@ -89,4 +90,22 @@ ggplot() +
 
 ggplot() +
   geom_line(otherArrivals, mapping = aes(parameter, weeklyma, colour="weekly ma"))
+```
+
+# Seasonal
+```{r}
+tsArrivals <- ts(otherArrivals$value, frequency = 365)
+
+tsArrivals <- tsclean(tsArrivals)
+
+decomp <- stl(tsArrivals, s.window="periodic")
+
+deseasonalArrivals <- seasadj(decomp)
+
+plot(decomp)
+```
+
+Augmented Dickey-Fuller. Lag order = 12. Not a big negative number, so I believe that means the data has stationary variance?? Makes sense visually.
+```{r}
+adf.test(tsArrivals, alternative="stationary")
 ```
