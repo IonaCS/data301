@@ -109,3 +109,19 @@ Augmented Dickey-Fuller. Lag order = 12. Not a big negative number, so I believe
 ```{r}
 adf.test(tsArrivals, alternative="stationary")
 ```
+
+# Correlation
+### This section may not be relevent to end report
+Acf does not fit within upper and lowerbounds, Pacf does.
+```{r}
+# NB: 0 = no lag, i.e. the most recent day
+Acf(tsArrivals, main="Correlation between data and its lags")
+Pacf(tsArrivals, main="Corr between data and its lags that are explained by previous lags")
+
+difference <- diff(deseasonalArrivals, differences = 1)
+plot(deseasonalArrivals)
+plot(difference)
+
+Acf(difference, main="Acf for differenced")
+Pacf(difference, main="Pacf for differenced")
+```
