@@ -78,6 +78,8 @@ ggplot(otherArrivals, aes(parameter, cleanvalue)) +
   facet_wrap( ~ Month) + scale_x_date('month')
 ```
 
+### Maybe insert col for day of week and do facet wrap for that?
+
 # Moving averages
 ```{r}
 otherArrivals$weeklyma <- ma(otherArrivals$cleanvalue, order=7)
@@ -98,6 +100,7 @@ tsArrivals <- ts(otherArrivals$value, frequency = 365)
 
 tsArrivals <- tsclean(tsArrivals)
 
+#remove seasonality/trending
 decomp <- stl(tsArrivals, s.window="periodic")
 
 deseasonalArrivals <- seasadj(decomp)
@@ -122,6 +125,43 @@ difference <- diff(deseasonalArrivals, differences = 1)
 plot(deseasonalArrivals)
 plot(difference)
 
+# ADF confirms if on right track or not
+adf.test(difference, alternative = "stationary")
+
 Acf(difference, main="Acf for differenced")
 Pacf(difference, main="Pacf for differenced")
+```
+
+# Arima models
+P=5 D=1 Q=2
+```{r}
+fit <- auto.arima(deseasonalArrivals, seasonal=FALSE)
+fit
+
+tsdisplay(residuals(fit), lag.max=1200)
+```
+
+
+
+```{r}
+tsArrivalsTillDec <- otherArrivalsTillDec <- filter(otherArrivals, parameter<"2019-12-01")
+tsArrivalsTillDec <- ts(otherArrivalsTillDec$value, frequency = 365)
+tsArrivalsTillDec <- tsclean(tsArrivalsTillDec)
+
+tbatsFit <- tbats(tsArrivals, use.parallel=TRUE, num.cores = 2) # fit tbats model
+plot(forecast(tbatsFit)) # plot
+components <- tbats.components(tbatsFit)
+plot(components)
+
+tbatsFit <- tbats(tsArrivalsTillDec, use.parallel=TRUE, num.cores = 2) # fit tbats model
+plot(forecast(tbatsFit)) # plot
+components <- tbats.components(tbatsFit)
+plot(components)
+```
+
+
+# This is confusing me, here's a normal forecast
+```{r}
+# 305 = 305 days between 01/12/19-30/09/20
+plot(forecast(tsArrivalsTillDec, h=305, level=c(80,95)))
 ```
