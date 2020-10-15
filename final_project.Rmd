@@ -40,7 +40,7 @@ otherArrivals$cleanvalue<-tsclean(tsArrivals) #remove outliers
 
 # Graphs
 ```{r}
-recentArrivals <- filter(otherArrivals, parameter > as.Date("2019-12-01"))
+recentArrivals <- filter(otherArrivals, parameter > as.Date("2020-01-01"))
 
 firstReportedCase <- as.Date("2020-02-28")
 bordersClosed <- as.Date("2020-03-19")
@@ -135,17 +135,17 @@ Pacf(difference, main="Pacf for differenced")
 # Arima models
 P=5 D=1 Q=2
 ```{r}
-fit <- auto.arima(deseasonalArrivals, seasonal=FALSE)
-fit
+#fit <- auto.arima(deseasonalArrivals, seasonal=FALSE)
+#fit
 
-tsdisplay(residuals(fit), lag.max=1200)
+#tsdisplay(residuals(fit), lag.max=1200)
 ```
 
 
 
 ```{r}
 tsArrivalsTillDec <- otherArrivalsTillDec <- filter(otherArrivals, parameter<"2019-12-01")
-tsArrivalsTillDec <- ts(otherArrivalsTillDec$value, frequency = 365)
+tsArrivalsTillDec <- ts(otherArrivalsTillDec$value, start=2016, frequency = 365)
 tsArrivalsTillDec <- tsclean(tsArrivalsTillDec)
 
 tbatsFit <- tbats(tsArrivals, use.parallel=TRUE, num.cores = 2) # fit tbats model
@@ -164,4 +164,78 @@ plot(components)
 ```{r}
 # 305 = 305 days between 01/12/19-30/09/20
 plot(forecast(tsArrivalsTillDec, h=305, level=c(80,95)))
+```
+
+
+
+
+
+
+
+
+
+# Code from original assignment
+Added on true false to find out which indicators were not counted
+```{r message = F}
+library(xts)
+# get the time frequency 
+# df : subset of covid with one indicator_name value
+get.frequency <- function(df) {
+  # check if indicator has multiple series
+  ind.sub <- df
+  if(length(unique(ind.sub$series_name)) > 1 || length(unique(ind.sub$sub_series_name)) > 1){
+    ind.sub <- get.single.series(ind.sub)
+  }
+  # get time frequency of instances with periodicity function
+  avg.dif <- periodicity(ind.sub$parameter)
+  return(avg.dif$scale)
+}
+```
+
+The function `get.single.series` removes all but one series / sub series so that only one time period is left.
+```{r}
+# get the single series for indicator
+get.single.series <- function(df) {
+  ans <- df %>% filter(series_name == unique(df$series_name)[1])
+  # check for multiple sub series
+  if(length(unique(ans$sub_series_name)) > 1)
+    ans <- ans %>% filter(sub_series_name == unique(df$sub_series_name)[1])
+  return(ans)
+}
+```
+
+Here we create a new data frame of all the indicators and their frequencies. We get a table with frequency counts and `ind.freqs.df`, which can be used to filter the large data set by frequency or lookup the frequency for an indicator.
+```{r message = F}
+# get instance frequency for all indicators
+# convert parameter to date
+covid.1 <- covid
+covid.1$parameter <- as.Date(covid.1$parameter)
+# remove NA dates
+covid.1 <- na.omit(covid.1)
+
+indicators <- unique(covid.1$indicator_name)
+frequency <- c()
+for(i in 1:length(indicators)) {
+  ind.sub <- covid.1 %>% filter(indicator_name == indicators[i])
+  frequency <- append(frequency, get.frequency(ind.sub))
+}
+ind.freqs <- cbind(indicators, frequency)
+ind.freqs.df <- as.data.frame(ind.freqs)
+
+freq.totals <- ind.freqs.df %>% group_by(frequency) %>% summarise(total = n()) %>% arrange(total)
+```
+```{r}
+library(ggplot2)
+ggplot(freq.totals, aes(x=reorder(frequency, total), y=total)) +
+  geom_bar(stat="identity", fill = "steelblue") + 
+  geom_text(aes(label=total), vjust=1.6, color="white", size=3.5) +
+  labs(x = "Frequency", y = "Number of indicators", title = "Instance frequencies of indicators in COVID-19 dataset") +
+  theme(panel.background = element_rect(fill = "white", colour = "gray90", size = 1),
+          panel.grid.major = element_line(size = 0.7, linetype = 'solid', colour = "gray97"))
+```
+
+Find which of the indicators weren't in that graph:
+```{r}
+indicatorgraphed<- data.frame(ind=unique(covid$indicator_name), contains=unique(covid$indicator_name) %in% ind.freqs)
+head(indicatorgraphed)
 ```
