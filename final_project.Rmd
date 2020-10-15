@@ -71,14 +71,52 @@ otherArrivals$Month <- month(otherArrivals$parameter)
 
 ggplot(otherArrivals, aes(parameter, value)) + 
   geom_point() + 
-  facet_wrap( ~ Month) + scale_x_date('month')
+  facet_wrap( ~ Month) + 
+  labs(title="Total daily arrivals of people on non-New Zealand passports", 
+       subtitle="1 = January, 2 = February, etc.",
+       x="Year",
+       y="Daily count")
 
 ggplot(otherArrivals, aes(parameter, cleanvalue)) + 
   geom_point() + 
-  facet_wrap( ~ Month) + scale_x_date('month')
+  facet_wrap( ~ Month)
 ```
 
-### Maybe insert col for day of week and do facet wrap for that?
+
+
+```{r}
+otherArrivals$Weekday <- weekdays(otherArrivals$parameter)
+# add number so that they are in chronological order, not alphbetical
+otherArrivals$Weekday <- recode(otherArrivals$Weekday, "Monday"="1-Monday", "Tuesday"="2-Tuesday", "Wednesday"="3-Wednesday", "Thursday"="4-Thursday", "Friday"="5-Friday", "Saturday"="6-Saturday", "Sunday"="7-Sunday")
+
+# exclude 2020 results
+oldArrivals <- filter(otherArrivals, parameter < as.Date("2020-01-01"))
+# get May only to reduce annual season noise
+may <- filter(oldArrivals, Month==5)
+# get November only
+nov <- filter(oldArrivals, Month==11)
+# get December only
+dec <- filter(oldArrivals, Month==12)
+
+ggplot(may, aes(Weekday, value)) + 
+  geom_boxplot() +
+  labs(title="Weekly variance of arrivals in May",
+      y="Daily count")
+
+ggplot(nov, aes(Weekday, value)) + 
+  geom_boxplot() +
+  labs(title="Weekly variance of arrivals in November",
+      y="Daily count")
+
+ggplot(dec, aes(Weekday, value)) + 
+  geom_boxplot() 
+
+# checking post lockdown results for patterns
+newArrivals <- filter(otherArrivals, parameter > as.Date("2020-04-01"))
+ggplot(newArrivals, aes(Weekday, value)) + 
+  geom_boxplot()
+```
+
 
 # Moving averages
 ```{r}
@@ -160,7 +198,7 @@ plot(components)
 ```
 
 
-# This is confusing me, here's a normal forecast
+# This is confusing me, so here's a normal forecast
 ```{r}
 # 305 = 305 days between 01/12/19-30/09/20
 plot(forecast(tsArrivalsTillDec, h=305, level=c(80,95)))
