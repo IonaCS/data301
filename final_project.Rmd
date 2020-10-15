@@ -239,3 +239,74 @@ Find which of the indicators weren't in that graph:
 indicatorgraphed<- data.frame(ind=unique(covid$indicator_name), contains=unique(covid$indicator_name) %in% ind.freqs)
 head(indicatorgraphed)
 ```
+
+# More code from original assignment
+```{r}
+# Select data that relates to departures
+allArrivals <- filter(covid, indicator_name == "Daily border crossings - arrivals")
+
+# Convert values from char to correct format
+allArrivals$parameter <- as.Date(allArrivals$parameter, format="%Y-%m-%d")
+allArrivals$value <- as.numeric(allArrivals$value)
+
+# Select NZ passport departures
+otherArrivals <- filter(allArrivals, series_name == "Other passports")
+
+# See what we gots...
+plot(allArrivals$parameter, allArrivals$value)
+plot(otherArrivals$parameter, otherArrivals$value)
+
+# Narrow it down
+library(lubridate)
+library(stringr)
+library(scales)
+# Add year only column (needs refactoring):
+otherArrivals$year <- year(otherArrivals$parameter)
+otherArrivals$year <- as.character(otherArrivals$year)
+# Add column with dates altered to all be in 2020 (needs refactoring):
+otherArrivals$date_with_uniform_year <- as.character(otherArrivals$parameter)
+otherArrivals$date_with_uniform_year <- str_replace(otherArrivals$date_with_uniform_year, "^\\d{4}","2020")
+otherArrivals$date_with_uniform_year <- as.Date(otherArrivals$date_with_uniform_year)
+# Plot it:
+otherArrivals %>%
+  ggplot(aes(x = date_with_uniform_year, y = value, colour = year)) +
+  geom_line() +
+  theme_bw() +
+  scale_x_date(labels = date_format("%b")) +
+  labs(title="Non-New Zealand passport holders' arrivals over a year",
+       subtitle="(Includes both long and short term trips)",
+       y="Number of arrivals",
+       x="Month of arrival")
+
+
+
+
+firstReportedCase <- as.Date("2020-02-28")
+bordersClosed <- as.Date("2020-03-19")
+levelFour <- as.Date("2020-03-25")
+MIQStarted <- as.Date("2020-04-10")
+levelThree <- as.Date("2020-04-27")
+levelTwo <- as.Date("2020-05-13")
+levelOne <- as.Date("2020-06-08")
+MIQFeeCameIntoEffect <- as.Date("2020-08-11")
+
+recentOtherArrivals <- filter(otherArrivals, parameter > firstReportedCase)
+ggplot(recentOtherArrivals, aes(x=parameter, y=value)) + 
+  geom_line() +
+  theme_bw() +
+  #geom_vline(xintercept = bordersClosed, color = "blue") +
+  geom_vline(xintercept = levelFour, color = "red") +
+  #geom_vline(xintercept = MIQStarted, color = "blue") +
+  geom_vline(xintercept = levelThree, color = "dark orange") +
+  geom_vline(xintercept = levelTwo, color = "goldenrod1") +
+  geom_vline(xintercept = levelOne, color = "green3") +
+  #geom_vline(xintercept = MIQFeeCameIntoEffect, color = "blue")
+  geom_text(mapping = aes(x=levelFour+3, y=10750, label="Level 4"), angle=90) +
+  geom_text(mapping = aes(x=levelThree+3, y=10750, label="Level 3"), angle=90) +
+  geom_text(mapping = aes(x=levelTwo+3, y=10750, label="Level 2"), angle=90) +
+  geom_text(mapping = aes(x=levelOne+3, y=10750, label="Level 1"), angle=90) +
+  labs(title="Non-New Zealand passport holders' arrivals since the first reported Covid case",
+       #subtitle="",
+       y="Number of arrivals",
+       x="Month of arrival")
+```
