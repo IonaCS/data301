@@ -100,12 +100,16 @@ dec <- filter(oldArrivals, Month==12)
 
 ggplot(may, aes(Weekday, value)) + 
   geom_boxplot() +
+  theme_bw() +
   labs(title="Weekly variance of arrivals in May",
+       subtitle="Data from 2016-2019",
       y="Daily count")
 
 ggplot(nov, aes(Weekday, value)) + 
   geom_boxplot() +
+  theme_bw() +
   labs(title="Weekly variance of arrivals in November",
+       subtitle="Data from 2016-2019",
       y="Daily count")
 
 ggplot(dec, aes(Weekday, value)) + 
@@ -134,7 +138,7 @@ ggplot() +
 
 # Seasonal
 ```{r}
-tsArrivals <- ts(otherArrivals$value, frequency = 365)
+tsArrivals <- ts(otherArrivals$value, start=2016, frequency = 365)
 
 tsArrivals <- tsclean(tsArrivals)
 
@@ -143,7 +147,7 @@ decomp <- stl(tsArrivals, s.window="periodic")
 
 deseasonalArrivals <- seasadj(decomp)
 
-plot(decomp)
+plot(decomp, main="Decomposition of Other Passort arrivals into New Zealand")
 ```
 
 Augmented Dickey-Fuller. Lag order = 12. Not a big negative number, so I believe that means the data has stationary variance?? Makes sense visually.
@@ -182,7 +186,7 @@ P=5 D=1 Q=2
 
 
 ```{r}
-tsArrivalsTillDec <- otherArrivalsTillDec <- filter(otherArrivals, parameter<"2019-12-01")
+otherArrivalsTillDec <- filter(otherArrivals, parameter<"2019-12-01")
 tsArrivalsTillDec <- ts(otherArrivalsTillDec$value, start=2016, frequency = 365)
 tsArrivalsTillDec <- tsclean(tsArrivalsTillDec)
 
@@ -201,7 +205,27 @@ plot(components)
 # This is confusing me, so here's a normal forecast
 ```{r}
 # 305 = 305 days between 01/12/19-30/09/20
-plot(forecast(tsArrivalsTillDec, h=305, level=c(80,95)))
+estimatedArrivals <- forecast(tsArrivalsTillDec, h=305, level=c(80,95))
+plot(estimatedArrivals, main="Estimated 'Other Passport' arrivals into NZ (for 12/2019-09/2020)")
+
+# repeat, but for diff dates
+otherArrivalsTillMar <- filter(otherArrivals, parameter<"2020-03-01")
+otherArrivalsTillMar <- ts(otherArrivalsTillMar$value, start=2016, frequency = 365)
+otherArrivalsTillMar <- tsclean(otherArrivalsTillMar)
+estimatedArrivals2 <- forecast(otherArrivalsTillMar, h=214, level=c(80,95))
+plot(estimatedArrivals2, main="Estimated 'Other Passport' arrivals into NZ (for 03/2020-09/2020)")
+```
+```{r}
+arrivalsDF <- as.data.frame(estimatedArrivals)
+colSums(arrivalsDF)
+
+otherArrivalsFromDec <- filter(otherArrivals, parameter>"2019-12-01")
+sum(otherArrivalsFromDec$value)
+
+arrivalsDF2 <- as.data.frame(estimatedArrivals2)
+colSums(arrivalsDF2)
+otherArrivalsFromMar <- filter(otherArrivals, parameter>"2020-03-01")
+sum(otherArrivalsFromMar$value)
 ```
 
 
